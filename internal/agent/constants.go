@@ -43,14 +43,6 @@ const (
 	// IoTimeout is the timeout for I/O operations (valid range was 100ms-5min)
 	IoTimeout = 2 * time.Second
 
-	// SbrTimeoutSeconds is the timeout that determines the heartbeat interval for SBR device writes (valid range was 10-300s)
-	SbrTimeoutSeconds = 30
-
-	// SbrUpdateInterval is the interval at which the remediation status is updated (set at 1/6 of SbrTimeoutSeconds for safety margin)
-	SbrUpdateInterval = 5 * time.Second
-	// PeerCheckInterval is the interval at which peer health checks are performed (set at 1/6 of SbrTimeoutSeconds for safety margin)
-	PeerCheckInterval = 5 * time.Second
-
 	// Loglevel is the logging level for the agent logging
 	LogLevel = "debug"
 

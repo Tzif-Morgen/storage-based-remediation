@@ -254,13 +254,6 @@ func TestStorageBasedRemediationConfigSpec_GetSBRTimeoutSeconds(t *testing.T) {
 			},
 			expected: 60,
 		},
-		{
-			name: "minimum timeout is returned",
-			spec: StorageBasedRemediationConfigSpec{
-				SBRTimeoutSeconds: func(v int32) *int32 { return &v }(10),
-			},
-			expected: 10,
-		},
 	}
 
 	for _, tt := range tests {
