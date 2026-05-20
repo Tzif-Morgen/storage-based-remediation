@@ -39,6 +39,7 @@ BUNDLE_IMG ?= $(QUAY_OPERATOR_NAME)-bundle:$(IMAGE_TAG)
 CATALOG_IMG ?= $(QUAY_OPERATOR_NAME)-catalog:$(IMAGE_TAG)
 
 AGENT_IMG ?= $(IMAGE_REGISTRY)/$(AGENT_NAME):$(IMAGE_TAG)
+export AGENT_IMG
 
 OPERATOR_SHA=$$(podman inspect $(QUAY_OPERATOR_NAME):$(IMAGE_TAG) --format "{{.ID}}" )
 AGENT_SHA=$$(podman inspect $(QUAY_AGENT_IMG):$(IMAGE_TAG) --format "{{.ID}}" )
@@ -669,7 +670,7 @@ CSV ?= ./bundle/manifests/$(OPERATOR_NAME).clusterserviceversion.yaml
 .PHONY: bundle
 bundle: manifests operator-sdk kustomize yq ## Generate OLM bundle manifests and metadata, then validate
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle -q --manifests --metadata --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	$(KUSTOMIZE) build config/manifests | envsubst '$$AGENT_IMG' | $(OPERATOR_SDK) generate bundle -q --manifests --metadata --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 	$(MAKE) bundle-validate
 
 .PHONY: bundle-validate

@@ -6,5 +6,13 @@ images:
 - name: controller
   newName: quay.io/medik8s/storage-based-remediation-operator
   newTag: latest
-- name: imagePullPolicy
-  newName: Never
+patches:
+- patch: |
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: RELATED_IMAGE_SBR_AGENT
+        value: ${AGENT_IMG}
+  target:
+    kind: Deployment
+    name: controller-manager
