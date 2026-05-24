@@ -93,9 +93,11 @@ type StorageBasedRemediationConfigSpec struct {
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// SBRTimeoutSeconds defines the SBR timeout in seconds used to derive agent timing intervals.
-	// The agent computes the heartbeat interval as sbrTimeoutSeconds / 2 (peer liveness and failure-detection basis).
-	// The operator passes sbr-update-interval and peer-check-interval as sbrTimeoutSeconds / 6 each.
+	// SBRTimeoutSeconds configures the base timing for failure detection.
+	// The heartbeat is sent every (sbrTimeoutSeconds/2) seconds.
+	// A node is considered unhealthy after maxConsecutiveFailures missed heartbeats.
+	// The operator also uses (sbrTimeoutSeconds/6) for update and peer-check intervals
+	// (~3 scans per heartbeat) so shared-storage jitter is less likely to look like a missed heartbeat.
 	// Time-to-detection scales with maxConsecutiveFailures × heartbeatInterval.
 	// Allowed range is enforced by CRD validation (10-300 seconds).
 	// +kubebuilder:validation:Minimum=10
@@ -168,6 +170,7 @@ func (s *StorageBasedRemediationConfigSpec) GetPeerCheckInterval() time.Duration
 	return s.derivedTimingInterval()
 }
 
+// derivedTimingInterval is timeout/6: poll peers ~3× per heartbeat period (timeout/2).
 func (s *StorageBasedRemediationConfigSpec) derivedTimingInterval() time.Duration {
 	interval := time.Duration(s.GetSBRTimeoutSeconds()) * time.Second / 6
 	if interval < time.Second {

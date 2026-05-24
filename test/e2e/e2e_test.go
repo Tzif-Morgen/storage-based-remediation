@@ -294,12 +294,12 @@ func testBasicStorageBasedRemediationConfiguration() {
 	})
 	Expect(err).NotTo(HaveOccurred(), "StorageBasedRemediationConfig creation failed")
 
-	validator := testNamespace.NewSBRAgentValidator()
-	opts := utils.DefaultValidateAgentDeploymentOptions(sbrConfig.Name)
+	validator := newSBRAgentValidator(testNamespace)
+	opts := defaultValidateAgentDeploymentOptions(sbrConfig.Name)
 	opts.ExpectedArgs = []string{
 		"--watchdog-path=/dev/watchdog",
 	}
-	err = validator.ValidateAgentDeployment(opts)
+	err = validator.validateAgentDeployment(opts)
 	Expect(err).NotTo(HaveOccurred(), "SBR agent deployment failed")
 
 	time.Sleep(time.Second * 30)

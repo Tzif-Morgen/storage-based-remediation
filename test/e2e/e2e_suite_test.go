@@ -60,7 +60,7 @@ func TestE2E(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	utils.SetLogger(GinkgoWriter)
-	Expect(utils.CheckClusterConnection()).To(Succeed(), "Kubernetes cluster connection required")
+	Expect(checkClusterConnection()).To(Succeed(), "Kubernetes cluster connection required")
 
 	if testFlags.DebugMode {
 		GinkgoWriter.Printf("Using test configuration:\n")
@@ -70,7 +70,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	var err error
-	testNamespace, err = utils.SuiteSetup("sbr-test-e2e")
+	testNamespace, err = suiteSetup("sbr-test-e2e")
 	Expect(err).NotTo(HaveOccurred(), "Failed to setup test clients")
 
 	testClients = testNamespace.Clients
@@ -93,7 +93,7 @@ var _ = BeforeSuite(func() {
 	By("Cleaning up previous test attempts")
 	cleanupTestArtifacts(testNamespace)
 	Expect(utils.WaitForNodesReady(testNamespace, "10m", "30s", true)).To(Succeed(), "expected all nodes to be Ready")
-	utils.CleanupStorageBasedRemediationConfigs(testNamespace)
+	cleanupStorageBasedRemediationConfigs(testNamespace)
 
 	By("Complete: Cleaning up previous test attempts")
 })
@@ -103,7 +103,7 @@ var _ = AfterSuite(func() {
 
 	By("cleaning up e2e test namespace")
 	if testNamespace != nil {
-		_ = testNamespace.Cleanup()
+		_ = cleanupNamespace(testNamespace)
 		GinkgoWriter.Printf("\n\n--------------------------------\n")
 		GinkgoWriter.Printf("Artefacts available at: %s\n", testNamespace.ArtifactsDir)
 		GinkgoWriter.Printf("--------------------------------\n\n")
@@ -116,9 +116,9 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	createReportAndCleanUp()
 	Expect(utils.WaitForNodesReady(testNamespace, "10m", "30s", false)).To(Succeed(), "expected all nodes to be Ready")
-	debugCollector := testClients.NewDebugCollector(testNamespace.ArtifactsDir)
-	debugCollector.CollectAgentLogs(testNamespace.Name)
-	utils.CleanupStorageBasedRemediationConfigs(testNamespace)
+	debugCollector := newDebugCollector(testClients, testNamespace.ArtifactsDir)
+	debugCollector.collectAgentLogs(testNamespace.Name)
+	cleanupStorageBasedRemediationConfigs(testNamespace)
 })
 
 func createReportAndCleanUp() {
@@ -131,7 +131,7 @@ func createReportAndCleanUp() {
 		GinkgoWriter.Printf("\n\n--------------------------------\n")
 		GinkgoWriter.Printf("Test failed: %s\n", specReport.FullText())
 		GinkgoWriter.Printf("--------------------------------\n\n")
-		utils.DescribeEnvironment(testClients, testNamespace.OperatorNamespace())
-		utils.DescribeEnvironment(testClients, testNamespace)
+		describeEnvironment(testClients, testNamespace.OperatorNamespace())
+		describeEnvironment(testClients, testNamespace)
 	}
 }
