@@ -27,6 +27,22 @@ import (
 	"github.com/go-logr/logr"
 )
 
+// syncOpener opens block devices without O_DIRECT for unit tests.
+type syncOpener struct{}
+
+func (syncOpener) Open(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_RDWR|os.O_SYNC, 0)
+}
+
+func init() {
+	// Production opens with O_DIRECT so reads bypass the page cache on real block
+	// devices. Unit tests use regular temp files (tmpfs) with small, unaligned
+	// ReadAt/WriteAt calls, which return EINVAL under O_DIRECT on many kernels
+	// (notably CI). Use syncOpener so tests exercise I/O, timeout, and retry
+	// logic without a real block device or 512-byte-aligned I/O.
+	DeviceOpener = syncOpener{}
+}
+
 // testingInterface defines the common interface between *testing.T and *testing.B
 type testingInterface interface {
 	Helper()
