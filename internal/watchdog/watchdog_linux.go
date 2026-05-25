@@ -3,6 +3,7 @@
 package watchdog
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -85,6 +86,9 @@ func (w *Watchdog) getTimeoutSysfs() (time.Duration, error) {
 func (w *Watchdog) getTimeoutIoctl() (time.Duration, error) {
 	timeoutSeconds, err := unix.IoctlGetInt(w.fd, unix.WDIOC_GETTIMEOUT)
 	if err != nil {
+		if errors.Is(err, unix.ENOTTY) {
+			return 0, ErrIoctlNotSupported
+		}
 		return 0, fmt.Errorf("ioctl unix.WDIOC_GETTIMEOUT failed: %w", err)
 	}
 	if timeoutSeconds <= 0 {
