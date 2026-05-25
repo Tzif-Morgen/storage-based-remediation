@@ -69,6 +69,9 @@ func (w *Watchdog) getTimeoutSysfs() (time.Duration, error) {
 	}
 
 	for _, entry := range entries {
+		if entry.Name() == SysfsWatchdog0 {
+			continue
+		}
 		timeoutPath := fmt.Sprintf("%s/%s/%s", SysfsWatchdogClass, entry.Name(), SysfsTimeoutFile)
 		if timeout, err := w.readTimeoutFromSysfsFile(timeoutPath, entry.Name()); err == nil {
 			return timeout, nil
@@ -83,6 +86,9 @@ func (w *Watchdog) getTimeoutIoctl() (time.Duration, error) {
 	timeoutSeconds, err := unix.IoctlGetInt(w.fd, unix.WDIOC_GETTIMEOUT)
 	if err != nil {
 		return 0, fmt.Errorf("ioctl unix.WDIOC_GETTIMEOUT failed: %w", err)
+	}
+	if timeoutSeconds <= 0 {
+		return 0, fmt.Errorf("ioctl returned invalid timeout value: %d", timeoutSeconds)
 	}
 
 	timeoutDuration := time.Duration(timeoutSeconds) * time.Second

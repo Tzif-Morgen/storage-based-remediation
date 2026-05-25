@@ -344,7 +344,7 @@ func NewWithLogger(path string, logger logr.Logger) (*Watchdog, error) {
 	// Retry watchdog opening for transient errors
 	ctx := context.Background()
 	err = retry.Do(ctx, retryConfig, "open watchdog device", func() error {
-		fd, err = unix.Open(path, unix.O_WRONLY, 0644)
+		fd, err = unix.Open(path, unix.O_WRONLY, 0)
 		if err != nil {
 			return retry.NewRetryableError(err, retry.IsTransientError(err), "open watchdog device")
 		}
