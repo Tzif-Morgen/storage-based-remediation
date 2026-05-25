@@ -31,4 +31,6 @@ echo "cgo: ${CGO_ENABLED}"
 # export in case it was set
 export GOEXPERIMENT="${GOEXPERIMENT}"
 
-GOOS=linux GOARCH=amd64 go build "$@"
+# detect target arch from Go toolchain, default to amd64
+GOARCH=$(go env GOARCH)
+GOOS=linux GOARCH=${GOARCH:-amd64} go build "$@"
