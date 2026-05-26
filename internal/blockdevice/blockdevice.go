@@ -69,18 +69,18 @@ type Opener interface {
 	Open(path string) (*os.File, error)
 }
 
-type productionOpener struct{}
+type opener struct{}
 
-func (productionOpener) Open(path string) (*os.File, error) {
+func (opener) Open(path string) (*os.File, error) {
 	// Open the device with read/write access and synchronous I/O.
 	// O_SYNC ensures that all writes are immediately flushed to disk.
 	// O_DIRECT ensures reads bypass the page cache so the agent does not see stale data.
 	return os.OpenFile(path, os.O_RDWR|os.O_SYNC|syscall.O_DIRECT, 0)
 }
 
-// DeviceOpener opens block device paths. Defaults to productionOpener (O_DIRECT).
+// DeviceOpener opens block device paths. Defaults to opener (O_DIRECT).
 // Unit tests may replace it when using temp files instead of real block devices.
-var DeviceOpener Opener = productionOpener{}
+var DeviceOpener Opener = opener{}
 
 // Open opens a raw block device at the specified path for read/write operations.
 // The device is opened with O_RDWR and O_SYNC flags to ensure synchronous I/O,
@@ -159,7 +159,7 @@ func OpenWithTimeout(path string, ioTimeout time.Duration, logger logr.Logger) (
 	// Retry device opening for transient errors
 	ctx := context.Background()
 	err = retry.Do(ctx, retryConfig, "open block device", func() error {
-		// DeviceOpener uses O_RDWR|O_SYNC|O_DIRECT in production (see productionOpener).
+		// DeviceOpener uses O_RDWR|O_SYNC|O_DIRECT in production (see opener).
 		file, err = DeviceOpener.Open(path)
 		if err != nil {
 			// Wrap error with retry information
