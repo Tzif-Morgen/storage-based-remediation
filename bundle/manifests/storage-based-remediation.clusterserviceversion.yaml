@@ -314,7 +314,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                - name: RELATED_IMAGE_SBR_AGENT
+                - name: RELATED_IMAGE_AGENT
                   value: quay.io/medik8s/storage-based-remediation-agent:latest
                 image: quay.io/medik8s/storage-based-remediation-operator:latest
                 livenessProbe:
@@ -418,5 +418,5 @@ spec:
     url: https://github.com/medik8s
   relatedImages:
   - image: quay.io/medik8s/storage-based-remediation-agent:latest
-    name: sbr-agent
+    name: agent
   version: 0.0.1

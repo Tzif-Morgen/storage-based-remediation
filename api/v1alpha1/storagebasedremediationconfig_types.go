@@ -37,8 +37,8 @@ const (
 	DefaultSBRTimeoutSeconds = 30
 	// DefaultMaxConsecutiveFailures is the runtime default when maxConsecutiveFailures is unset on the CR (no OpenAPI default).
 	DefaultMaxConsecutiveFailures = 7
-	// RelatedImageSbrAgent when this env is set it contains the image of SBR agent
-	RelatedImageSbrAgent = "RELATED_IMAGE_SBR_AGENT"
+	// RelatedImageAgent when this env is set it contains the image of SBR agent
+	RelatedImageAgent = "RELATED_IMAGE_AGENT"
 )
 
 // DetectOnlyModeType specifies whether SBR runs in detect-only mode (no remediation).

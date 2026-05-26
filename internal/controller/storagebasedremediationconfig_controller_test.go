@@ -199,10 +199,10 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 			err = os.Setenv("POD_NAMESPACE", namespace)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = os.Setenv("RELATED_IMAGE_SBR_AGENT", testAgentImage)
+			err = os.Setenv("RELATED_IMAGE_AGENT", testAgentImage)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
-				_ = os.Unsetenv("RELATED_IMAGE_SBR_AGENT")
+				_ = os.Unsetenv("RELATED_IMAGE_AGENT")
 			})
 		})
 
@@ -333,10 +333,10 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 				Scheme: k8sClient.Scheme(),
 			}
 
-			err := os.Setenv("RELATED_IMAGE_SBR_AGENT", testAgentImage)
+			err := os.Setenv("RELATED_IMAGE_AGENT", testAgentImage)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
-				_ = os.Unsetenv("RELATED_IMAGE_SBR_AGENT")
+				_ = os.Unsetenv("RELATED_IMAGE_AGENT")
 			})
 		})
 
@@ -572,10 +572,10 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 				Recorder: mockRecorder,
 			}
 
-			err := os.Setenv("RELATED_IMAGE_SBR_AGENT", testAgentImage)
+			err := os.Setenv("RELATED_IMAGE_AGENT", testAgentImage)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
-				_ = os.Unsetenv("RELATED_IMAGE_SBR_AGENT")
+				_ = os.Unsetenv("RELATED_IMAGE_AGENT")
 			})
 		})
 
@@ -692,10 +692,10 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, testNamespace)).To(Succeed())
 
-			err := os.Setenv("RELATED_IMAGE_SBR_AGENT", testAgentImage)
+			err := os.Setenv("RELATED_IMAGE_AGENT", testAgentImage)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
-				_ = os.Unsetenv("RELATED_IMAGE_SBR_AGENT")
+				_ = os.Unsetenv("RELATED_IMAGE_AGENT")
 			})
 		})
 
@@ -748,10 +748,10 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 				Recorder: mockEventRecorder,
 			}
 
-			err := os.Setenv("RELATED_IMAGE_SBR_AGENT", testAgentImage)
+			err := os.Setenv("RELATED_IMAGE_AGENT", testAgentImage)
 			Expect(err).NotTo(HaveOccurred())
 			DeferCleanup(func() {
-				_ = os.Unsetenv("RELATED_IMAGE_SBR_AGENT")
+				_ = os.Unsetenv("RELATED_IMAGE_AGENT")
 			})
 		})
 

@@ -182,15 +182,15 @@ func (r *StorageBasedRemediationConfigReconciler) emitEventf(
 	}
 }
 
-// getAgentImage reads the agent image from the RELATED_IMAGE_SBR_AGENT environment variable.
+// getAgentImage reads the agent image from the RELATED_IMAGE_AGENT environment variable.
 // This variable is set during deployment via the operator-sdk bundle generation and
 // kustomize configuration. It must always be set for the operator to function correctly.
 func (r *StorageBasedRemediationConfigReconciler) getAgentImage(logger logr.Logger) (string, error) {
-	img := os.Getenv(medik8sv1alpha1.RelatedImageSbrAgent)
+	img := os.Getenv(medik8sv1alpha1.RelatedImageAgent)
 	if img == "" {
-		return "", fmt.Errorf("RELATED_IMAGE_SBR_AGENT environment variable not set")
+		return "", fmt.Errorf("%s environment variable not set", medik8sv1alpha1.RelatedImageAgent)
 	}
-	logger.Info("Using agent image from environment", "image", img)
+	logger.Info("Using agent image from environment", "env var", medik8sv1alpha1.RelatedImageAgent, "image", img)
 	return img, nil
 }
 

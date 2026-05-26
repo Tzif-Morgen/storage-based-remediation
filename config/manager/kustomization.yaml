@@ -11,7 +11,7 @@ patches:
     - op: add
       path: /spec/template/spec/containers/0/env/-
       value:
-        name: RELATED_IMAGE_SBR_AGENT
+        name: RELATED_IMAGE_AGENT
         value: ${AGENT_IMG}
   target:
     kind: Deployment
