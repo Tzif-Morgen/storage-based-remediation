@@ -314,6 +314,8 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
+                - name: RELATED_IMAGE_AGENT
+                  value: quay.io/medik8s/storage-based-remediation-agent:latest
                 image: quay.io/medik8s/storage-based-remediation-operator:latest
                 livenessProbe:
                   httpGet:
@@ -414,4 +416,7 @@ spec:
   provider:
     name: medik8s
     url: https://github.com/medik8s
+  relatedImages:
+  - image: quay.io/medik8s/storage-based-remediation-agent:latest
+    name: agent
   version: 0.0.1
