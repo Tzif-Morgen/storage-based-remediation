@@ -50,6 +50,19 @@ import (
 	testutils "github.com/medik8s/storage-based-remediation/test/utils"
 )
 
+// sbrAgentTestOpener opens block devices without O_DIRECT for unit tests.
+type sbrAgentTestOpener struct{}
+
+func (sbrAgentTestOpener) Open(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_RDWR|os.O_SYNC, 0)
+}
+
+func init() {
+	// Same reason as internal/blockdevice/blockdevice_test.go: temp files used in
+	// preflight and fence-flow tests cannot use O_DIRECT with unaligned I/O on CI.
+	blockdevice.DeviceOpener = sbrAgentTestOpener{}
+}
+
 const (
 	// Test constants
 	nonExistentWatchdogPath = "/non/existent/watchdog"
