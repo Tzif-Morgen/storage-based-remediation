@@ -990,7 +990,7 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 				})
 			})
 
-			It("should delete the stale PVC and not fail with 'already exists'", func() {
+			It("should replace a stale test PVC with a fresh one on reconcile", func() {
 				_, _, _ = runReconcile(ctx, validationReconciler, types.NamespacedName{
 					Name:      sbrConfig.Name,
 					Namespace: sbrConfig.Namespace,

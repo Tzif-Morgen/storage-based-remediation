@@ -515,7 +515,7 @@ func (r *StorageBasedRemediationConfigReconciler) testRWXSupport(
 	// No wait: if Create still fails with AlreadyExists the error is returned and
 	// the reconcile loop retries on the next requeue.
 	if deleteErr := r.Delete(ctx, &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: testPVCName, Namespace: sbrConfig.Namespace}}); deleteErr != nil && !errors.IsNotFound(deleteErr) {
-		logger.Error(deleteErr, "Failed to delete stale test PVC", "testPVC", testPVCName)
+		return fmt.Errorf("failed to delete stale test PVC '%s': %w", testPVCName, deleteErr)
 	}
 
 	// Create the test PVC
