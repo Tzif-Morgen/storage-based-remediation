@@ -103,3 +103,6 @@ __pycache__/
 
 # cSpell configuration (personal word list)
 cspell.json
+
+# Editor/IDE local configuration
+.cursorrules

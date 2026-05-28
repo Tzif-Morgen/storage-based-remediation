@@ -46,6 +46,8 @@ cluster/
 # Editor/IDE
 .idea/
 # .vscode/
+.cursorrules
+cspell.json
 
 # Generated manifests and test-specific configurations
 dist/
