@@ -45,7 +45,7 @@ cluster/
 
 # Editor/IDE
 .idea/
-# .vscode/
+.vscode/
 .cursorrules
 cspell.json
 
