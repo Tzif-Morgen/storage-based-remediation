@@ -475,6 +475,13 @@ func (r *StorageBasedRemediationConfigReconciler) testRWXSupport(
 		return fmt.Errorf("failed to set controller reference on test PVC: %w", err)
 	}
 
+	// Best-effort delete of any stale PVC with this name before creating a fresh one.
+	// No wait: if Create still fails with AlreadyExists the error is returned and
+	// the reconcile loop retries on the next requeue.
+	if deleteErr := r.Delete(ctx, &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: testPVCName, Namespace: sbrConfig.Namespace}}); deleteErr != nil && !errors.IsNotFound(deleteErr) {
+		return fmt.Errorf("failed to delete stale test PVC '%s': %w", testPVCName, deleteErr)
+	}
+
 	// Create the test PVC
 	logger.Info("Creating temporary PVC to test ReadWriteMany support")
 	err := r.Create(ctx, testPVC)

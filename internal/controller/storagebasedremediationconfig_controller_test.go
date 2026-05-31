@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -961,6 +962,82 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 				By("expecting reconciliation to complete (may succeed or fail depending on actual provisioner capability)")
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("ReadWriteMany"))
+			})
+		})
+
+		Context("When a stale test PVC exists from a previous interrupted run (RHWA-1017)", func() {
+			var (
+				customStorageClass *storagev1.StorageClass
+				stalePVC           *corev1.PersistentVolumeClaim
+				sbrConfig          *medik8sv1alpha1.StorageBasedRemediationConfig
+			)
+
+			BeforeEach(func() {
+				customStorageClass = &storagev1.StorageClass{
+					ObjectMeta:  metav1.ObjectMeta{Name: "stale-pvc-test-sc"},
+					Provisioner: "custom.example.com/stale-pvc-test",
+				}
+				Expect(k8sClient.Create(ctx, customStorageClass)).To(Succeed())
+				DeferCleanup(func() {
+					Expect(k8sClient.Delete(ctx, customStorageClass)).To(Succeed())
+				})
+
+				sbrConfigName := "test-stale-pvc-cleanup"
+
+				stalePVC = &corev1.PersistentVolumeClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fmt.Sprintf("%s-rwx-test", sbrConfigName),
+						Namespace: validationNamespace,
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+						Resources: corev1.VolumeResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: resource.MustParse("1Gi"),
+							},
+						},
+						StorageClassName: &customStorageClass.Name,
+					},
+				}
+				Expect(k8sClient.Create(ctx, stalePVC)).To(Succeed())
+
+				// envtest has no pvc-protection controller to clear the kubernetes.io/pvc-protection
+				// finalizer, so deletion would stall. Strip it manually; a real cluster handles this automatically.
+				patch := client.MergeFrom(stalePVC.DeepCopy())
+				stalePVC.Finalizers = nil
+				Expect(k8sClient.Patch(ctx, stalePVC, patch)).To(Succeed())
+
+				sbrConfig = &medik8sv1alpha1.StorageBasedRemediationConfig{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      sbrConfigName,
+						Namespace: validationNamespace,
+					},
+					Spec: medik8sv1alpha1.StorageBasedRemediationConfigSpec{
+						SharedStorageClass: customStorageClass.Name,
+					},
+				}
+				Expect(k8sClient.Create(ctx, sbrConfig)).To(Succeed())
+				DeferCleanup(func() {
+					Expect(k8sClient.Delete(ctx, sbrConfig)).To(Succeed())
+				})
+			})
+
+			It("should replace a stale test PVC with a fresh one on reconcile", func() {
+				_, _, _ = runReconcile(ctx, validationReconciler, types.NamespacedName{
+					Name:      sbrConfig.Name,
+					Namespace: sbrConfig.Namespace,
+				})
+
+				finalPVC := &corev1.PersistentVolumeClaim{}
+				err := k8sClient.Get(ctx, types.NamespacedName{Name: stalePVC.Name, Namespace: validationNamespace}, finalPVC)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(finalPVC.UID).NotTo(Equal(stalePVC.UID),
+					"PVC should be a newly created one, not the original stale PVC")
+				// In envtest, pvc-protection finalizer is never cleared so the PVC stays
+				// in Terminating after the controller's defer delete; in a real cluster it
+				// would be fully removed.
+				Expect(finalPVC.DeletionTimestamp).NotTo(BeNil(),
+					"New PVC should be in Terminating state (deleted by controller defer cleanup)")
 			})
 		})
 	})
