@@ -16,7 +16,6 @@ The SBR Agent requires privileged access to hardware watchdog devices and block 
 The SCC grants the following permissions:
 - `allowPrivilegedContainer: true` - Required for hardware watchdog access
 - `allowHostDirVolumePlugin: true` - Required to mount host directories like `/dev`
-- `allowHostNetwork: true` - Required for network access
 - `allowHostPID: true` - Required for process management
 - `allowedCapabilities: [SYS_ADMIN]` - Required for device management
 

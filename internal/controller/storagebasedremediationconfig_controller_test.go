@@ -413,6 +413,10 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 			By("verifying the DaemonSet has correct security context")
 			Expect(*container.SecurityContext.Privileged).To(BeTrue())
 			Expect(*container.SecurityContext.RunAsUser).To(BeEquivalentTo(0))
+
+			By("verifying the DaemonSet does not use host networking")
+			Expect(daemonSet.Spec.Template.Spec.HostNetwork).To(BeFalse())
+			Expect(daemonSet.Spec.Template.Spec.DNSPolicy).To(Equal(corev1.DNSClusterFirst))
 		})
 
 		It("should update DaemonSet when StorageBasedRemediationConfig is modified", func() {
