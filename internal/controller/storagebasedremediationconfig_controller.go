@@ -470,11 +470,6 @@ func (r *StorageBasedRemediationConfigReconciler) testRWXSupport(
 		},
 	}
 
-	// Set controller reference for cleanup
-	if err := controllerutil.SetControllerReference(sbrConfig, testPVC, r.Scheme); err != nil {
-		return fmt.Errorf("failed to set controller reference on test PVC: %w", err)
-	}
-
 	// Best-effort delete of any stale PVC with this name before creating a fresh one.
 	// No wait: if Create still fails with AlreadyExists the error is returned and
 	// the reconcile loop retries on the next requeue.
@@ -493,6 +488,23 @@ func (r *StorageBasedRemediationConfigReconciler) testRWXSupport(
 	defer func() {
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
+
+		// If the PVC is bound, patch the PV reclaimPolicy to Delete so Kubernetes
+		// reclaims it automatically when the PVC is deleted, regardless of the
+		// StorageClass reclaimPolicy (e.g. Retain).
+		if pvName := testPVC.Spec.VolumeName; pvName != "" {
+			pv := &corev1.PersistentVolume{}
+			if getErr := r.Get(cleanupCtx, types.NamespacedName{Name: pvName}, pv); getErr != nil {
+				logger.Error(getErr, "Failed to get test PV for reclaim policy patch", "pv", pvName)
+			} else if pv.Spec.PersistentVolumeReclaimPolicy != corev1.PersistentVolumeReclaimDelete {
+				pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimDelete
+				if patchErr := r.Update(cleanupCtx, pv); patchErr != nil {
+					logger.Error(patchErr, "Failed to patch test PV reclaim policy to Delete", "pv", pvName)
+				} else {
+					logger.Info("Patched test PV reclaim policy to Delete", "pv", pvName)
+				}
+			}
+		}
 
 		if deleteErr := r.Delete(cleanupCtx, testPVC); deleteErr != nil {
 			logger.Error(deleteErr, "Failed to cleanup test PVC", "testPVC", testPVCName)
@@ -926,6 +938,7 @@ echo "SBR devices initialization completed successfully"
 // +kubebuilder:rbac:groups="",resources=nodes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=persistentvolumes,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=storage.k8s.io,resources=storageclasses,verbs=get;list;watch
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=security.openshift.io,resources=securitycontextconstraints,verbs=use,resourceNames=privileged
@@ -1192,6 +1205,30 @@ func (r *StorageBasedRemediationConfigReconciler) handleDeletion(
 	// The service account will be cleaned up when the namespace is deleted or manually by administrators
 
 	// Note: DaemonSet cleanup is handled automatically by Kubernetes garbage collection due to OwnerReference
+
+	// Patch the shared-storage PV reclaimPolicy to Delete before the finalizer is removed and GC
+	// deletes the PVC. This prevents Released PV accumulation when the StorageClass uses reclaimPolicy: Retain.
+	if sbrConfig.Spec.HasSharedStorage() {
+		pvcName := sbrConfig.Spec.GetSharedStoragePVCName(sbrConfig.Name)
+		pvc := &corev1.PersistentVolumeClaim{}
+		if getErr := r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: sbrConfig.Namespace}, pvc); getErr != nil {
+			if !errors.IsNotFound(getErr) {
+				logger.Error(getErr, "Failed to get shared-storage PVC during cleanup", "pvc", pvcName)
+			}
+		} else if pvName := pvc.Spec.VolumeName; pvName != "" {
+			pv := &corev1.PersistentVolume{}
+			if getErr := r.Get(ctx, types.NamespacedName{Name: pvName}, pv); getErr != nil {
+				logger.Error(getErr, "Failed to get shared-storage PV during cleanup", "pv", pvName)
+			} else if pv.Spec.PersistentVolumeReclaimPolicy != corev1.PersistentVolumeReclaimDelete {
+				pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimDelete
+				if updateErr := r.Update(ctx, pv); updateErr != nil {
+					logger.Error(updateErr, "Failed to patch shared-storage PV reclaim policy to Delete", "pv", pvName)
+					return ctrl.Result{RequeueAfter: InitialStorageBasedRemediationConfigRetryDelay}, updateErr
+				}
+				logger.Info("Patched shared-storage PV reclaim policy to Delete", "pv", pvName)
+			}
+		}
+	}
 
 	// Remove the finalizer to allow deletion
 	controllerutil.RemoveFinalizer(sbrConfig, StorageBasedRemediationConfigFinalizerName)
