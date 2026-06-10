@@ -418,6 +418,13 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 			By("verifying the DaemonSet does not use host networking")
 			Expect(daemonSet.Spec.Template.Spec.HostNetwork).To(BeFalse())
 			Expect(daemonSet.Spec.Template.Spec.DNSPolicy).To(Equal(corev1.DNSClusterFirst))
+
+			By("verifying the DaemonSet declares container ports")
+			Expect(container.Ports).To(HaveLen(2))
+			Expect(container.Ports[0].Name).To(Equal("metrics"))
+			Expect(container.Ports[0].ContainerPort).To(BeEquivalentTo(8080))
+			Expect(container.Ports[1].Name).To(Equal("agent-metrics"))
+			Expect(container.Ports[1].ContainerPort).To(BeEquivalentTo(agent.DefaultMetricsPort))
 		})
 
 		It("should update DaemonSet when StorageBasedRemediationConfig is modified", func() {

@@ -1469,7 +1469,19 @@ func (r *StorageBasedRemediationConfigReconciler) buildDaemonSet(sbrConfig *medi
 									},
 								},
 							},
-							Args:         r.buildSBRAgentArgs(sbrConfig),
+							Args: r.buildSBRAgentArgs(sbrConfig),
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "metrics",
+									ContainerPort: 8080,
+									Protocol:      corev1.ProtocolTCP,
+								},
+								{
+									Name:          "agent-metrics",
+									ContainerPort: int32(agent.DefaultMetricsPort),
+									Protocol:      corev1.ProtocolTCP,
+								},
+							},
 							VolumeMounts: r.buildVolumeMounts(sbrConfig),
 							LivenessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
