@@ -440,6 +440,25 @@ func (r *StorageBasedRemediationConfigReconciler) validateNFSMountOptions(storag
 	return nil
 }
 
+// patchPVReclaimToDelete patches a PV's reclaimPolicy to Delete
+func (r *StorageBasedRemediationConfigReconciler) patchPVReclaimToDelete(
+	ctx context.Context, pvName string, logger logr.Logger) error {
+	pv := &corev1.PersistentVolume{}
+	if err := r.Get(ctx, types.NamespacedName{Name: pvName}, pv); err != nil {
+		logger.Error(err, "Failed to get PV for reclaim policy patch", "pv", pvName)
+		return err
+	}
+	if pv.Spec.PersistentVolumeReclaimPolicy != corev1.PersistentVolumeReclaimDelete {
+		pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimDelete
+		if err := r.Update(ctx, pv); err != nil {
+			logger.Error(err, "Failed to patch PV reclaim policy to Delete", "pv", pvName)
+			return err
+		}
+		logger.Info("Patched PV reclaim policy to Delete", "pv", pvName)
+	}
+	return nil
+}
+
 // testRWXSupport tests if a storage class actually supports ReadWriteMany by creating a temporary PVC
 func (r *StorageBasedRemediationConfigReconciler) testRWXSupport(
 	ctx context.Context, sbrConfig *medik8sv1alpha1.StorageBasedRemediationConfig, storageClassName string, logger logr.Logger) error {
@@ -489,21 +508,10 @@ func (r *StorageBasedRemediationConfigReconciler) testRWXSupport(
 		cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		// If the PVC is bound, patch the PV reclaimPolicy to Delete so Kubernetes
-		// reclaims it automatically when the PVC is deleted, regardless of the
-		// StorageClass reclaimPolicy (e.g. Retain).
+		// Patch the PV reclaimPolicy to Delete if the PVC is bound.
+		// Error is logged but not returned since this is best-effort cleanup in a defer.
 		if pvName := testPVC.Spec.VolumeName; pvName != "" {
-			pv := &corev1.PersistentVolume{}
-			if getErr := r.Get(cleanupCtx, types.NamespacedName{Name: pvName}, pv); getErr != nil {
-				logger.Error(getErr, "Failed to get test PV for reclaim policy patch", "pv", pvName)
-			} else if pv.Spec.PersistentVolumeReclaimPolicy != corev1.PersistentVolumeReclaimDelete {
-				pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimDelete
-				if patchErr := r.Update(cleanupCtx, pv); patchErr != nil {
-					logger.Error(patchErr, "Failed to patch test PV reclaim policy to Delete", "pv", pvName)
-				} else {
-					logger.Info("Patched test PV reclaim policy to Delete", "pv", pvName)
-				}
-			}
+			_ = r.patchPVReclaimToDelete(cleanupCtx, pvName, logger)
 		}
 
 		if deleteErr := r.Delete(cleanupCtx, testPVC); deleteErr != nil {
@@ -1216,16 +1224,8 @@ func (r *StorageBasedRemediationConfigReconciler) handleDeletion(
 				logger.Error(getErr, "Failed to get shared-storage PVC during cleanup", "pvc", pvcName)
 			}
 		} else if pvName := pvc.Spec.VolumeName; pvName != "" {
-			pv := &corev1.PersistentVolume{}
-			if getErr := r.Get(ctx, types.NamespacedName{Name: pvName}, pv); getErr != nil {
-				logger.Error(getErr, "Failed to get shared-storage PV during cleanup", "pv", pvName)
-			} else if pv.Spec.PersistentVolumeReclaimPolicy != corev1.PersistentVolumeReclaimDelete {
-				pv.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimDelete
-				if updateErr := r.Update(ctx, pv); updateErr != nil {
-					logger.Error(updateErr, "Failed to patch shared-storage PV reclaim policy to Delete", "pv", pvName)
-					return ctrl.Result{RequeueAfter: InitialStorageBasedRemediationConfigRetryDelay}, updateErr
-				}
-				logger.Info("Patched shared-storage PV reclaim policy to Delete", "pv", pvName)
+			if err := r.patchPVReclaimToDelete(ctx, pvName, logger); err != nil {
+				return ctrl.Result{RequeueAfter: InitialStorageBasedRemediationConfigRetryDelay}, err
 			}
 		}
 	}
