@@ -1472,7 +1472,7 @@ func (r *StorageBasedRemediationConfigReconciler) buildDaemonSet(sbrConfig *medi
 							Args: r.buildSBRAgentArgs(sbrConfig),
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          "metrics",
+									Name:          "runtime-metrics",
 									ContainerPort: 8080,
 									Protocol:      corev1.ProtocolTCP,
 								},

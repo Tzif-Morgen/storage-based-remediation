@@ -421,7 +421,7 @@ var _ = Describe("StorageBasedRemediationConfig Controller", func() {
 
 			By("verifying the DaemonSet declares container ports")
 			Expect(container.Ports).To(HaveLen(2))
-			Expect(container.Ports[0].Name).To(Equal("metrics"))
+			Expect(container.Ports[0].Name).To(Equal("runtime-metrics"))
 			Expect(container.Ports[0].ContainerPort).To(BeEquivalentTo(8080))
 			Expect(container.Ports[1].Name).To(Equal("agent-metrics"))
 			Expect(container.Ports[1].ContainerPort).To(BeEquivalentTo(agent.DefaultMetricsPort))
